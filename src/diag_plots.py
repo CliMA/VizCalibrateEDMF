@@ -48,7 +48,7 @@ def plot_metric(data_paths:List[str], metric:str,
         else:
             den = 1.
         if labels is not None:
-            label = labels[v]
+            label = labels[i]
         else:
             label = (data_path).split('_')[-1]
         t = dt.ncFetch(data_path, 'metrics', 'iteration')[:-1]
@@ -66,6 +66,7 @@ def plot_metric(data_paths:List[str], metric:str,
     ax = fig.gca()
     ax.xaxis.set_major_locator(MaxNLocator(integer=True))
     plt.legend(frameon=False)
+    plt.tight_layout()
     plt.savefig(metric+'.pdf', format='pdf')
     return
 
@@ -104,7 +105,7 @@ def plot_epoch_avg_metric(data_paths:List[str], metric:str,
         else:
             den = 1.
         if labels is not None:
-            label = labels[v]
+            label = labels[i]
         else:
             label = (data_path).split('_')[-1]
         plt.plot(epoch, var, color=tab_colors[i], label = label)
