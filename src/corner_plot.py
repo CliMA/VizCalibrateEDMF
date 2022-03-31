@@ -11,10 +11,10 @@ def main():
     args = parser.parse_args()
     file_path = args.file_path
 
-    name_dict = {"sorting_power": "beta",
-                 "entrainment_factor": "c_eps",
+    name_dict = {"sorting_power": "$\\beta$",
+                 "entrainment_factor": "$\\c_{\epsilon}$",
                  "detrainment_factor": "c_del",
-                 "updraft_mixing_frac": "chi"}
+                 "updraft_mixing_frac": "$\\chi_u$"}
 
     data = nc.Dataset(file_path, 'r')
     param1 = []
