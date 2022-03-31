@@ -11,6 +11,11 @@ def main():
     args = parser.parse_args()
     file_path = args.file_path
 
+    name_dict = {"sorting_power": "beta",
+                 "entrainment_factor": "c_eps",
+                 "detrainment_factor": "c_del",
+                 "updraft_mixing_frac": "chi"}
+
     data = nc.Dataset(file_path, 'r')
     param1 = []
     param2 = []
@@ -21,34 +26,38 @@ def main():
         param1.append(param1_)
         param2.append(param2_)
     param_names = list(set(param1 + param2))
+    group_names = np.flipud(group_names)
+    param1 = np.flipud(param1)
+    param2 = np.flipud(param2)
 
     M = np.size(param_names)
     inx_mat = np.reshape(np.linspace(1,M*M,M*M),(M,M)).astype(int)
     xl, yl = np.tril_indices_from(inx_mat, k=-1)
-    xl = np.flipud(xl)
-    yl = np.flipud(yl)
     fig = plt.figure('loss corner plot')
-    # for loop to populate contourf
+
     for i in range(0,np.size(xl)):
-        pval1 = np.array(data.groups[group_names[i]].variables[param1[i]])
-        pval2 = np.array(data.groups[group_names[i]].variables[param2[i]])
+        x = np.array(data.groups[group_names[i]].variables[param2[i]])
+        y = np.array(data.groups[group_names[i]].variables[param1[i]])
+        print(inx_mat[xl[i],yl[i]], group_names[i], param1[i], param2[i])
         ax = fig.add_subplot(M, M, inx_mat[xl[i],yl[i]])
-        loss = np.clip(np.array(data.groups[group_names[i]].variables["loss_data"]), -10, 10)
-        im = ax.contourf(pval1, pval2, np.squeeze(loss[0,2,:,:]), cmap = "RdYlBu_r")
+        loss = np.squeeze(np.clip(np.array(data.groups[group_names[i]].variables["loss_data"]), -10, 10)[0,2,:,:])
+        im = ax.contourf(x, y, np.fliplr(np.rot90(loss, k=3)), cmap = "RdYlBu_r")
         fig.colorbar(im)
+        labelx = name_dict.get(param2[i])
+        labely = name_dict.get(param1[i])
         if (any(inx_mat[:,0] == inx_mat[xl[i],yl[i]]) and any(inx_mat[-1,:] == inx_mat[xl[i],yl[i]])):
-            ax.set_xlabel(param1[i])
-            ax.set_ylabel(param2[i])
+            ax.set_xlabel(labelx)
+            ax.set_ylabel(labely)
         elif any(inx_mat[:,0] == inx_mat[xl[i],yl[i]]):
             xlabels = [item.get_text() for item in ax.get_xticklabels()]
             xempty_string_labels = [''] * len(xlabels)
             ax.set_xticklabels(xempty_string_labels)
-            ax.set_ylabel(param1[i])
+            ax.set_ylabel(labely)
         elif any(inx_mat[-1,:] == inx_mat[xl[i],yl[i]]):
             ylabels = [item.get_text() for item in ax.get_yticklabels()]
             yempty_string_labels = [''] * len(ylabels)
             ax.set_yticklabels(yempty_string_labels)
-            ax.set_xlabel(param2[i])
+            ax.set_xlabel(labelx)
         else:
             xlabels = [item.get_text() for item in ax.get_xticklabels()]
             xempty_string_labels = [''] * len(xlabels)
