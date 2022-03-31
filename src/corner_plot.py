@@ -2,6 +2,8 @@ import numpy as np
 import netCDF4 as nc
 import pylab as plt
 import argparse
+import json
+import matplotlib.ticker as mticker
 
 # command line:
 # python corner_plot.py '/Users/yaircohen/Documents/codes/CliMA/calibrateEDMF_output/grid_search/Mar29/loss_hypercube.nc'
@@ -11,10 +13,8 @@ def main():
     args = parser.parse_args()
     file_path = args.file_path
 
-    name_dict = {"sorting_power": "$\\beta$",
-                 "entrainment_factor": "$\\c_{\epsilon}$",
-                 "detrainment_factor": "c_del",
-                 "updraft_mixing_frac": "$\\chi_u$"}
+    symbols_file = open('symbols.txt').read()
+    name_dict = json.loads(symbols_file)
 
     data = nc.Dataset(file_path, 'r')
     param1 = []
@@ -38,7 +38,6 @@ def main():
     for i in range(0,np.size(xl)):
         x = np.array(data.groups[group_names[i]].variables[param2[i]])
         y = np.array(data.groups[group_names[i]].variables[param1[i]])
-        print(inx_mat[xl[i],yl[i]], group_names[i], param1[i], param2[i])
         ax = fig.add_subplot(M, M, inx_mat[xl[i],yl[i]])
         loss = np.squeeze(np.clip(np.array(data.groups[group_names[i]].variables["loss_data"]), -10, 10)[0,2,:,:])
         im = ax.contourf(x, y, np.fliplr(np.rot90(loss, k=3)), cmap = "RdYlBu_r")
@@ -51,19 +50,23 @@ def main():
         elif any(inx_mat[:,0] == inx_mat[xl[i],yl[i]]):
             xlabels = [item.get_text() for item in ax.get_xticklabels()]
             xempty_string_labels = [''] * len(xlabels)
+            ax.xaxis.set_major_locator(mticker.FixedLocator(ax.get_xticks().tolist()))
             ax.set_xticklabels(xempty_string_labels)
             ax.set_ylabel(labely)
         elif any(inx_mat[-1,:] == inx_mat[xl[i],yl[i]]):
             ylabels = [item.get_text() for item in ax.get_yticklabels()]
             yempty_string_labels = [''] * len(ylabels)
+            ax.yaxis.set_major_locator(mticker.FixedLocator(ax.get_yticks().tolist()))
             ax.set_yticklabels(yempty_string_labels)
             ax.set_xlabel(labelx)
         else:
             xlabels = [item.get_text() for item in ax.get_xticklabels()]
             xempty_string_labels = [''] * len(xlabels)
+            ax.xaxis.set_major_locator(mticker.FixedLocator(ax.get_xticks().tolist()))
             ax.set_xticklabels(xempty_string_labels)
             ylabels = [item.get_text() for item in ax.get_yticklabels()]
             yempty_string_labels = [''] * len(ylabels)
+            ax.yaxis.set_major_locator(mticker.FixedLocator(ax.get_yticks().tolist()))
             ax.set_yticklabels(yempty_string_labels)
 
     plt.show()
