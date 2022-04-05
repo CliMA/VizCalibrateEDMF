@@ -9,10 +9,14 @@ import matplotlib as mpl
 # command line:
 # python corner_plot.py '/Users/yaircohen/Documents/codes/CliMA/calibrateEDMF_output/grid_search/Apr1/loss_hypercube.nc'
 def main():
-    parser = argparse.ArgumentParser(prog='PyCLES')
+    parser = argparse.ArgumentParser(prog='corner_plot')
     parser.add_argument("file_path")
+    parser.add_argument("ensamble_moment")
+    parser.add_argument("case_number")
     args = parser.parse_args()
     file_path = args.file_path
+    ensamble_moment = args.ensamble_moment
+    case_number = args.case_number
 
     symbols_file = open('symbols.txt').read()
     name_dict = json.loads(symbols_file)
@@ -56,7 +60,6 @@ def main():
         x_matrix[k,k] = z_matrix[k,k]
     x_matrix[-1,-1] = z_matrix[-1,-1]
 
-    # fig = plt.figure('loss corner plot')
     fig, axes = plt.subplots(M, M)
     for i in range(0,M):
         for j in range(0,M):
@@ -79,8 +82,6 @@ def main():
                     z_diag = np.add(z_diag, np.mean(z, axis = 1))
                 ax = axes[i][j]
                 pt = ax.plot(x, z_diag)
-                # ax = fig.add_subplot(M, M, inx_mat[i,j])
-                # im = ax.plot(x, z_diag)
                 ax.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
                 if i==M-1:
                     ax.set_xlabel(labelx)
@@ -94,6 +95,7 @@ def main():
                 group_name = z_matrix[i,j]
                 x = np.array(data.groups[group_name].variables[x_matrix[i,j]])
                 y = np.array(data.groups[group_name].variables[y_matrix[i,j]])
+                z = get_loss(np.array(data.groups[group_name].variables["loss_data"]), ensamble_moment, case_number)
                 z = np.squeeze(np.array(data.groups[group_name].variables["loss_data"])[0,0,:,:])
                 ax = axes[i][j]
                 pcm = ax.contourf(x, y, np.fliplr(np.rot90(z, k=3)), cmap = "RdYlBu_r")
@@ -124,8 +126,21 @@ def main():
 
             else:
                 axes[i,j].set_visible(False)
-    fig.colorbar(pcm, ax=axes[:, -1], shrink=0.7)
+    fig.colorbar(pcm, ax=axes, panchor = "NE", location='top', aspect=50, shrink = 0.9, anchor = (0.6,1.5))
     plt.show()
+
+def get_loss(z_full, ensamble_moment, case_number = -1):
+    if ensamble_moment == "mean":
+        z_ens = np.mean(z_full, axis = 0)
+    elif ensamble_moment == "variance":
+        z_ens = np.squeeze(np.var(z_full, axis = 0))
+    else:
+        print("ensamble_moment should be either mean or variance")
+    if case_number == -1:
+        z_case = np.squeeze(np.mean(z_ens), axis = 0)
+    else:
+        z_case = np.squeeze(z_ens[int(case_number)-1,:,:])
+    return z_case
 
 if __name__ == '__main__':
     main()
