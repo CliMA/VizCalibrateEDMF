@@ -1,9 +1,10 @@
 import numpy as np
 import netCDF4 as nc
-import pylab as plt
+import matplotlib.pyplot as plt
 import argparse
 import json
 import matplotlib.ticker as mticker
+import matplotlib as mpl
 
 # command line:
 # python corner_plot.py '/Users/yaircohen/Documents/codes/CliMA/calibrateEDMF_output/grid_search/Apr1/loss_hypercube.nc'
@@ -55,7 +56,8 @@ def main():
         x_matrix[k,k] = z_matrix[k,k]
     x_matrix[-1,-1] = z_matrix[-1,-1]
 
-    fig = plt.figure('loss corner plot')
+    # fig = plt.figure('loss corner plot')
+    fig, axes = plt.subplots(M, M)
     for i in range(0,M):
         for j in range(0,M):
             labelx = name_dict.get(x_matrix[i,j])
@@ -75,8 +77,10 @@ def main():
                         z_diag = np.zeros_like(x)
                     z = np.squeeze(np.array(data.groups[group_name].variables["loss_data"])[0,0,:,:])
                     z_diag = np.add(z_diag, np.mean(z, axis = 1))
-                ax = fig.add_subplot(M, M, inx_mat[i,j])
-                im = ax.plot(x, z_diag)
+                ax = axes[i][j]
+                pt = ax.plot(x, z_diag)
+                # ax = fig.add_subplot(M, M, inx_mat[i,j])
+                # im = ax.plot(x, z_diag)
                 ax.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
                 if i==M-1:
                     ax.set_xlabel(labelx)
@@ -91,8 +95,8 @@ def main():
                 x = np.array(data.groups[group_name].variables[x_matrix[i,j]])
                 y = np.array(data.groups[group_name].variables[y_matrix[i,j]])
                 z = np.squeeze(np.array(data.groups[group_name].variables["loss_data"])[0,0,:,:])
-                ax = fig.add_subplot(M, M, inx_mat[i,j])
-                im = ax.contourf(x, y, np.fliplr(np.rot90(z, k=3)), cmap = "RdYlBu_r")
+                ax = axes[i][j]
+                pcm = ax.contourf(x, y, np.fliplr(np.rot90(z, k=3)), cmap = "RdYlBu_r")
                 if j==0 and i==M-1:
                     ax.set_xlabel(labelx)
                     ax.set_ylabel(labely)
@@ -117,6 +121,10 @@ def main():
                     yempty_string_labels = [''] * len(ylabels)
                     ax.yaxis.set_major_locator(mticker.FixedLocator(ax.get_yticks().tolist()))
                     ax.set_yticklabels(yempty_string_labels)
+
+            else:
+                axes[i,j].set_visible(False)
+    fig.colorbar(pcm, ax=axes[:, -1], shrink=0.7)
     plt.show()
 
 if __name__ == '__main__':
