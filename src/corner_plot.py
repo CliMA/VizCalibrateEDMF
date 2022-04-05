@@ -56,7 +56,6 @@ def main():
         x_matrix[k,k] = z_matrix[k,k]
     x_matrix[-1,-1] = z_matrix[-1,-1]
 
-    # fig = plt.figure('loss corner plot')
     fig, axes = plt.subplots(M, M)
     for i in range(0,M):
         for j in range(0,M):
@@ -79,8 +78,6 @@ def main():
                     z_diag = np.add(z_diag, np.mean(z, axis = 1))
                 ax = axes[i][j]
                 pt = ax.plot(x, z_diag)
-                # ax = fig.add_subplot(M, M, inx_mat[i,j])
-                # im = ax.plot(x, z_diag)
                 ax.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
                 if i==M-1:
                     ax.set_xlabel(labelx)
@@ -124,7 +121,7 @@ def main():
 
             else:
                 axes[i,j].set_visible(False)
-    fig.colorbar(pcm, ax=axes[:, -1], shrink=0.7)
+    fig.colorbar(pcm, ax=axes, panchor = "NE", location='top',aspect=50, shrink = 0.9, anchor = (0.6,1.5))
     plt.show()
 
 if __name__ == '__main__':
