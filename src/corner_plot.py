@@ -6,8 +6,17 @@ import json
 import matplotlib.ticker as mticker
 import matplotlib as mpl
 
-# command line:
-# python corner_plot.py '/Users/yaircohen/Documents/codes/CliMA/calibrateEDMF_output/grid_search/Apr1/loss_hypercube.nc'
+###
+
+# This code is designed to receive loss.nc from CalibrateEDMF's loss_map.jl function
+# and plot a corresponding "corner plot" where the diagnoal is the marginal map per parameter
+# averaged over all other parameters and the lower half of the matrix shows contour plots
+# for all 2-parameter combinations in loss.nc
+# to run from command line:
+# python corner_plot.py PATH_TO_LOSS 'mean' -1
+
+###
+
 def main():
     parser = argparse.ArgumentParser(prog='corner_plot')
     parser.add_argument("file_path")
