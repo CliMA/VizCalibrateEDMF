@@ -20,6 +20,6 @@
 "smin_rm": "$smin_rm$",
 "l_max": "$l_max$",
 "max_area": "$max_area$",
-"total_updrafts_surface_area": "$surface_area$",
+"surface_area": "$a_s$",
 "updraft_number": "$N_up$"
 }
