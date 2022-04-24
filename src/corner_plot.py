@@ -70,28 +70,34 @@ def main():
     x_matrix[-1,-1] = z_matrix[-1,-1]
 
     fig, axes = plt.subplots(M, M)
+    max_y = 0.0
     for i in range(0,M):
         for j in range(0,M):
             labelx = name_dict.get(x_matrix[i,j])
             labely = name_dict.get(y_matrix[i,j])
             if i==j:
+                # if on the diagonal: collect all fields that has this parameter,
+                # take thier average with respect to the other parameter and plot
+                # the marginal loss curve on log-scale by scanning vertically
+                # and horiozntally from this diagonal spot
+
                 for k in range(0,j): # scan horizontally
                     group_name = z_matrix[i,k]
                     if k==0:
                         x = np.array(data.groups[group_name].variables[x_matrix[i,j]])
                         z_diag = np.zeros_like(x)
                     z = np.squeeze(np.array(data.groups[group_name].variables["loss_data"])[0,0,:,:])
-                    z_diag = np.add(z_diag,np.mean(z, axis = 0))
+                    z_diag = np.log(np.add(z_diag,np.nanmean(z, axis = 0)))
                 for k in range(i+1,M): # scan vertically
                     group_name = z_matrix[k,j]
                     if j==0:
                         x = np.array(data.groups[group_name].variables[x_matrix[i,j]])
                         z_diag = np.zeros_like(x)
                     z = np.squeeze(np.array(data.groups[group_name].variables["loss_data"])[0,0,:,:])
-                    z_diag = np.add(z_diag, np.mean(z, axis = 1))
+                    z_diag = np.log(np.add(z_diag, np.nanmean(z, axis = 1)))
                 ax = axes[i][j]
                 pt = ax.plot(x, z_diag)
-                ax.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
+                max_y = np.max((max_y,np.nanmax(z_diag)))
                 if i==M-1:
                     ax.set_xlabel(labelx)
                 else:
@@ -99,7 +105,9 @@ def main():
                     xempty_string_labels = [''] * len(xlabels)
                     ax.xaxis.set_major_locator(mticker.FixedLocator(ax.get_xticks().tolist()))
                     ax.set_xticklabels(xempty_string_labels)
+                ax.yaxis.tick_right()
 
+            # if off diagonal, identify and load relevant 2D slice for contour map
             elif bool(z_matrix[i,j]):
                 group_name = z_matrix[i,j]
                 x = np.array(data.groups[group_name].variables[x_matrix[i,j]])
@@ -135,7 +143,13 @@ def main():
 
             else:
                 axes[i,j].set_visible(False)
-    fig.colorbar(pcm, ax=axes, panchor = "NE", location='top', aspect=50, shrink = 0.9, anchor = (0.6,1.5))
+            axes[i,j].tick_params(axis='both', labelsize=8)
+    fig.colorbar(pcm, ax=axes, panchor = "NE", location='top', aspect=50, anchor = (1.0,0.3))
+    for i in range(0,M):
+        for j in range(0,M):
+            if i==j:
+                ax = axes[i][j]
+                ax.set_ylim(0,max_y)
     plt.show()
 
 def get_loss(z_full, ensamble_moment, case_number = -1):
