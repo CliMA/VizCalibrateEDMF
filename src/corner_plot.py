@@ -87,17 +87,18 @@ def main():
                         x = np.array(data.groups[group_name].variables[x_matrix[i,j]])
                         z_diag = np.zeros_like(x)
                     z = np.squeeze(np.array(data.groups[group_name].variables["loss_data"])[0,0,:,:])
-                    z_diag = np.log(np.add(z_diag,np.nanmean(z, axis = 0)))
+                    z_diag = np.add(z_diag,np.nanmean(z, axis = 0))
                 for k in range(i+1,M): # scan vertically
                     group_name = z_matrix[k,j]
                     if j==0:
                         x = np.array(data.groups[group_name].variables[x_matrix[i,j]])
-                        z_diag = np.zeros_like(x)
+                        if k==j+1:
+                            z_diag = np.zeros_like(x)
                     z = np.squeeze(np.array(data.groups[group_name].variables["loss_data"])[0,0,:,:])
-                    z_diag = np.log(np.add(z_diag, np.nanmean(z, axis = 1)))
+                    z_diag = np.add(z_diag, np.nanmean(z, axis = 1))
                 ax = axes[i][j]
-                pt = ax.plot(x, z_diag)
-                max_y = np.max((max_y,np.nanmax(z_diag)))
+                pt = ax.plot(x, np.log(z_diag))
+                max_y = np.nanmax((max_y,np.nanmax(np.log(z_diag))))
                 if i==M-1:
                     ax.set_xlabel(labelx)
                 else:
@@ -145,6 +146,8 @@ def main():
                 axes[i,j].set_visible(False)
             axes[i,j].tick_params(axis='both', labelsize=8)
     fig.colorbar(pcm, ax=axes, panchor = "NE", location='top', aspect=50, anchor = (1.0,0.3))
+
+    # set the ylim based on the maximum collcted in the previous iteration
     for i in range(0,M):
         for j in range(0,M):
             if i==j:
