@@ -1,0 +1,17 @@
+# To use:
+#   $ conda env create -f environment.yml
+#   $ conda activate VizCalibrateEDMF
+
+name: VizCalibrateEDMF
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9 
+  - pandas
+  - setuptools
+  - scipy
+  - scipy
+  - matplotlib
+  - netcdf4
+  - numpy
+  - xarray

@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
-# Ignacio Lopez Gomez
+# Ignacio Lopez Gomez, Costa Christopoulos
 # November 2021
 # Post-processing tools for netCDF4 datasets.
 
 from typing import Tuple, List
+from glob import glob
+import json
 import netCDF4 as nc
 import numpy as np
 import os
@@ -55,3 +57,26 @@ def ncFetchDim(directory:str, group:str, dimension:str) -> int:
     f = os.path.join(directory, 'Diagnostics.nc')
     with nc.Dataset(f,'r') as ds:
         return ds[group].dimensions[dimension].size
+
+def load_namelist(namelist_path:str):
+    """Given path to `namelist.in` file, load and return as a nested dictionary."""
+    with open(namelist_path, 'r') as f:
+        namelist = json.load(f)
+    return namelist
+
+def namelist_path(output_dir):
+    """Given directory containing TC results, return path to `*.in` file."""
+    file_paths = [os.path.join(output_dir, y) for x in os.walk(output_dir) for y in glob(os.path.join(x[0], '*.in'))]
+    if len(file_paths) > 1:
+        raise Exception("Multiple *.in files found in directory.")
+    return file_paths[0]
+
+def stats_path(output_dir, multi_path = False):
+    """Given directory containing TC results, return path(s) to `*.nc` file(s)."""
+    file_paths = [os.path.join(output_dir, y) for x in os.walk(output_dir) for y in glob(os.path.join(x[0], '*.nc'))]
+    if multi_path:
+        return file_paths
+    else:
+        if len(file_paths) > 1:
+            raise Exception("Multiple *.nc files found in directory.")
+        return file_paths[0]
