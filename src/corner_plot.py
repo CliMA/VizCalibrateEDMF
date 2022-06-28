@@ -76,7 +76,7 @@ def main():
             labelx = name_dict.get(x_matrix[i,j])
             labely = name_dict.get(y_matrix[i,j])
             if i==j:
-                #             Marginal loss on the diagonal:
+                # Marginal loss on the diagonal:
                 # if on the diagonal: collect all fields that has this parameter,
                 # take thier average with respect to the other parameter and plot
                 # the marginal loss curve on log-scale by scanning vertically
