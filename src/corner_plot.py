@@ -80,7 +80,7 @@ def main():
                 # Collect all fields that have this parameter,
                 # take their average with respect to the other parameter and plot
                 # the marginal loss curve on log-scale by scanning vertically
-                # and horiozntally from this diagonal spot.
+                # and horizontally from this diagonal spot.
                 # Here for the variable in [1,1] collect [1,0] from the horizontal and [2,1], [3,1] from the vertical axis
                 # for the variable in [2,2] collect [2,0] [2,1] from the horizontal and [3,2] from the vertical axis
                 # generally for [k,k] collect from the horizontal axis [0:k-1] and from the vertical axis [k,k+1:M]
