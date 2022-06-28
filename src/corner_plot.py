@@ -105,7 +105,7 @@ def main():
                         z_diag = np.add(z_diag, z_mean)
                     elif k>i:
                         group_name = z_matrix[k,j]
-                        # if at i=j=0 we never stepd into the previous condition create z_diag
+                        # if at i=j=0 we never stepped into the previous condition create z_diag
                         if j==0:
                             x = np.array(data.groups[group_name].variables[x_matrix[i,j]])
                             z_diag = np.zeros_like(x)
