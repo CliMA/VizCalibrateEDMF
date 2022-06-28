@@ -21,7 +21,7 @@ def main():
     parser = argparse.ArgumentParser(prog='corner_plot')
     parser.add_argument("file_path")
     parser.add_argument("ensamble_moment")
-    parser.add_argument("case_number")
+    parser.add_argument("case_number", type=int)
     args = parser.parse_args()
     file_path = args.file_path
     ensamble_moment = args.ensamble_moment
@@ -76,25 +76,45 @@ def main():
             labelx = name_dict.get(x_matrix[i,j])
             labely = name_dict.get(y_matrix[i,j])
             if i==j:
+                #             Marginal loss on the diagonal:
                 # if on the diagonal: collect all fields that has this parameter,
                 # take thier average with respect to the other parameter and plot
                 # the marginal loss curve on log-scale by scanning vertically
-                # and horiozntally from this diagonal spot
+                # and horiozntally from this diagonal spot.
+                # Here for the variable in [1,1] collect [1,0] from the horizontal and [2,1], [3,1] from the veritcal axis
+                # for the variable in [2,2] collect [2,0] [2,1] from the horizontal and [3,2] from the veritcal axis
+                # generally for [k,k] collect from the horizontal axis [0:k-1] and from the veritcal axis [k,k+1:M]
+                #   |---|---|---|---|      |---|---|---|---|
+                #   |0,0|   |   |   |      |0,0|   |   |   |
+                #   |---|---|---|---|      |---|---|---|---|
+                #   | H |1,1|   |   |      |   |1,1|   |   |
+                #   |---|---|---|---|  or  |---|---|---|---|
+                #   |   | V |2,2|   |      | H | H |2,2|   |
+                #   |---|---|---|---|      |---|---|---|---|
+                #   |   | V |   |3,3|      |   |   | V |3,3|
+                #   |---|---|---|---|      |---|---|---|---|
+                for k in range(0,M): # scan horizontally
+                    if k<j:
+                        group_name = z_matrix[i,k]
+                        # if at k=0 (first instant of this variable) create z_diag
+                        if k==0:
+                            x = np.array(data.groups[group_name].variables[x_matrix[i,j]])
+                            z_diag = np.zeros_like(x)
+                        z = np.squeeze(np.array(data.groups[group_name].variables["loss_data"])[0,0,:,:])
+                        z_mean = np.nanmean(z, axis = 1)
+                        z_diag = np.add(z_diag, z_mean)
+                    elif k>i:
+                        group_name = z_matrix[k,j]
+                        # if at i=j=0 we never stepd into the previous condition create z_diag
+                        if j==0:
+                            x = np.array(data.groups[group_name].variables[x_matrix[i,j]])
+                            z_diag = np.zeros_like(x)
+                        z = np.squeeze(np.array(data.groups[group_name].variables["loss_data"])[0,0,:,:])
+                        z_mean = np.nanmean(z, axis = 1)
+                        z_diag = np.add(z_diag, z_mean)
+                    else:
+                        pass
 
-                for k in range(0,j): # scan horizontally
-                    group_name = z_matrix[i,k]
-                    if k==0:
-                        x = np.array(data.groups[group_name].variables[x_matrix[i,j]])
-                        z_diag = np.zeros_like(x)
-                    z = np.squeeze(np.array(data.groups[group_name].variables["loss_data"])[0,0,:,:])
-                    z_diag = np.log(np.add(z_diag,np.nanmean(z, axis = 0)))
-                for k in range(i+1,M): # scan vertically
-                    group_name = z_matrix[k,j]
-                    if j==0:
-                        x = np.array(data.groups[group_name].variables[x_matrix[i,j]])
-                        z_diag = np.zeros_like(x)
-                    z = np.squeeze(np.array(data.groups[group_name].variables["loss_data"])[0,0,:,:])
-                    z_diag = np.log(np.add(z_diag, np.nanmean(z, axis = 1)))
                 ax = axes[i][j]
                 pt = ax.plot(x, z_diag)
                 max_y = np.max((max_y,np.nanmax(z_diag)))
