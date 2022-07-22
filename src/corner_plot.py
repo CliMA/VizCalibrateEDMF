@@ -133,7 +133,6 @@ def main():
                 x = np.array(data.groups[group_name].variables[x_matrix[i,j]])
                 y = np.array(data.groups[group_name].variables[y_matrix[i,j]])
                 z = get_loss(np.array(data.groups[group_name].variables["loss_data"]), ensamble_moment, case_number)
-                z = np.squeeze(np.array(data.groups[group_name].variables["loss_data"])[0,0,:,:])
                 ax = axes[i][j]
                 pcm = ax.contourf(x, y, np.fliplr(np.rot90(z, k=3)), cmap = "RdYlBu_r")
                 if j==0 and i==M-1:
