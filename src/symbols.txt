@@ -21,5 +21,10 @@
 "l_max": "$l_max$",
 "max_area": "$max_area$",
 "surface_area": "$a_s$",
-"updraft_number": "$N_up$"
+"updraft_number": "$N_up$",
+"\u03b1_autocon": "$autocon$",
+"\u03b1_accretion": "$accretion$",
+"microph_scaling": "$evap$",
+"microph_scaling_dep_sub": "$depsub$",
+"microph_scaling_melt": "$melt$"
 }
