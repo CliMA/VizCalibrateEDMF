@@ -101,7 +101,7 @@ def main():
                             x = np.array(data.groups[group_name].variables[x_matrix[i,j]])
                             z_diag = np.zeros_like(x)
                         z = np.squeeze(np.array(data.groups[group_name].variables["loss_data"])[0,0,:,:])
-                        z_mean = np.nanmean(z, axis = 1)
+                        z_mean = np.nanmean(z, axis = 0)
                         z_diag = np.add(z_diag, z_mean)
                     elif k>i:
                         group_name = z_matrix[k,j]
@@ -134,6 +134,7 @@ def main():
                 y = np.array(data.groups[group_name].variables[y_matrix[i,j]])
                 z = get_loss(np.array(data.groups[group_name].variables["loss_data"]), ensamble_moment, case_number)
                 ax = axes[i][j]
+
                 pcm = ax.contourf(x, y, np.fliplr(np.rot90(z, k=3)), cmap = "RdYlBu_r")
                 if j==0 and i==M-1:
                     ax.set_xlabel(labelx)
