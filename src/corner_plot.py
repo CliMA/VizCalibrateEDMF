@@ -71,6 +71,18 @@ def main():
 
     fig, axes = plt.subplots(M, M)
     max_y = 0.0
+
+    # Get Limits for colorbar
+    min_z = np.infty
+    max_z = -np.infty
+    for gn in group_names:
+        z = get_loss(np.array(data.groups[gn].variables["loss_data"]), ensamble_moment, case_number)
+        if min_z > np.min(z):
+            min_z = np.min(z)
+        if max_z < np.max(z):
+            max_z = np.max(z)
+    print(min_z, max_z)
+
     for i in range(0,M):
         for j in range(0,M):
             labelx = name_dict.get(x_matrix[i,j])
@@ -135,7 +147,7 @@ def main():
                 z = get_loss(np.array(data.groups[group_name].variables["loss_data"]), ensamble_moment, case_number)
                 ax = axes[i][j]
 
-                pcm = ax.contourf(x, y, np.fliplr(np.rot90(z, k=3)), cmap = "RdYlBu_r")
+                pcm = ax.contourf(x, y, np.fliplr(np.rot90(z, k=3)), cmap = "RdYlBu_r", vmin=min_z, vmax = max_z)
                 if j==0 and i==M-1:
                     ax.set_xlabel(labelx)
                     ax.set_ylabel(labely)
