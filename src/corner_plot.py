@@ -77,10 +77,10 @@ def main():
     max_z = -np.infty
     for gn in group_names:
         z = get_loss(np.array(data.groups[gn].variables["loss_data"]), ensamble_moment, case_number)
-        if min_z > np.min(z):
-            min_z = np.min(z)
-        if max_z < np.max(z):
-            max_z = np.max(z)
+        if min_z > np.nanmin(z):
+            min_z = np.nanmin(z)
+        if max_z < np.nanmax(z):
+            max_z = np.nanmax(z)
     print(min_z, max_z)
 
     for i in range(0,M):
