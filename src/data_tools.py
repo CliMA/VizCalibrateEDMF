@@ -80,3 +80,9 @@ def stats_path(output_dir, multi_path = False):
         if len(file_paths) > 1:
             raise Exception("Multiple *.nc files found in directory.")
         return file_paths[0]
+
+def full_les_path(path):
+    """Get absolute path to LES file, given path of the form `../../../../../zhaoyi/GCMForcedLES/`"""
+    path_split = path.split("/")
+    rel_path = os.path.join(*path_split[path_split.index("GCMForcedLES"):])
+    return os.path.join("/central/groups/esm/zhaoyi", rel_path)

@@ -18,8 +18,9 @@ from helper_funcs import convert2rgb, get_tab_colors
 import data_tools as dt
 
 def plot_metric(data_paths:List[str], metric:str,
-    lower_bound:Optional[str] = None, upper_bound:Optional[str] = None,
-    normalize:bool = False, labels:Optional[List[str]] = None):
+    lower_bound:Optional[str] = None, upper_bound:Optional[str] = None, alpha = 0.5,
+    normalize:bool = False, labels:Optional[List[str]] = None, ylim = None, xlim = None,
+    title:Optional[str] = None, logscale:Optional[str] = False):
     """Plots a metric evolution from the given data_paths.
 
     Since metrics require an evaluation of the forward model,
@@ -38,6 +39,8 @@ def plot_metric(data_paths:List[str], metric:str,
     """
     tab_colors = get_tab_colors()
     fig = plt.figure(metric)
+    if title:
+        plt.title(title)
     max_t = 0
     for (i, data_path) in enumerate(data_paths):
         shading = convert2rgb(tab_colors[i], 0.4)
@@ -56,16 +59,23 @@ def plot_metric(data_paths:List[str], metric:str,
         plt.plot(t, var, color=tab_colors[i], label = label)
         if lower_bound is not None:
             low = dt.ncFetch(data_path, 'metrics', lower_bound)[:-1]/den
-            plt.fill_between(t, var, low, color=shading)
+            plt.fill_between(t, var, low, color=shading, alpha = alpha)
         if upper_bound is not None:
             upp = dt.ncFetch(data_path, 'metrics', upper_bound)[:-1]/den
-            plt.fill_between(t, var, upp, color=shading)
+            plt.fill_between(t, var, upp, color=shading, alpha = alpha)
+    if logscale:
+        plt.yscale("log")
     plt.ylabel(metric)
     plt.xlabel('Iteration')
-    plt.xlim(0, max_t)
+    if xlim:
+        plt.xlim(xlim)
+    else:
+        plt.xlim(0, max_t)
+    plt.ylim(ylim)
     ax = fig.gca()
     ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-    plt.legend(frameon=False)
+
+    plt.legend(frameon=True, prop={'size': 7}, loc = 'upper right')
     plt.tight_layout()
     plt.savefig(metric+'.pdf', format='pdf')
     return
@@ -152,15 +162,15 @@ def plot_y_full(data_path:str, var_names:Optional[List[str]] = None):
       assuming they are constant across configurations.
     """
     config_names = dt.ncFetch(data_path, 'reference', 'config_name')
-    config_dz = dt.ncFetch(data_path, 'reference', 'config_dz')
+    config_z = dt.ncFetch(data_path, 'reference', 'config_z_obs_val')
     y_full = dt.ncFetch(data_path, 'reference', 'y_full')
     var_dof = dt.ncFetch(data_path, 'reference', 'var_dof')
     num_vars = dt.ncFetch(data_path, 'reference', 'num_vars')
     tab_colors = get_tab_colors()
     # Loop over configs
     idx_y_full = 0
-    for (c, (num_var, dof, config_name, dz)) in enumerate(
-            zip(num_vars, var_dof, config_names, config_dz)):
+    for (c, (num_var, dof, config_name)) in enumerate(
+            zip(num_vars, var_dof, config_names)):
         for v in range(int(num_var)):
             if var_names is not None:
                 var_name = var_names[v]
@@ -169,7 +179,7 @@ def plot_y_full(data_path:str, var_names:Optional[List[str]] = None):
             title = 'y_full_'+config_name+'_var_'+var_name
             plt.figure(title)
             profile = y_full[idx_y_full:idx_y_full+int(dof)]
-            z = dz*range(int(dof))
+            z = config_z
             plt.plot(profile, z, color=tab_colors[c])
             # Decorate plot
             plt.ylabel(r'$z$ (m)')
@@ -198,7 +208,7 @@ def plot_prior_post_ref(data_path:str, var_names:Optional[List[str]] = None, val
         num_vars = dt.ncFetch(data_path, 'reference', 'num_vars_val')
         var_dof = dt.ncFetch(data_path, 'reference', 'var_dof_val')
         y_full = dt.ncFetch(data_path, 'reference', 'y_full_val')
-        config_dz = dt.ncFetch(data_path, 'reference', 'config_dz_val')
+        config_z = dt.ncFetch(data_path, 'reference', 'config_z_obs_val')
         config_names = dt.ncFetch(data_path, 'reference', 'config_name_val')
         norm_factor = dt.ncFetch(data_path, 'reference', 'norm_factor_val')
         # Last forward model evals are empty
@@ -208,7 +218,7 @@ def plot_prior_post_ref(data_path:str, var_names:Optional[List[str]] = None, val
         num_vars = dt.ncFetch(data_path, 'reference', 'num_vars')
         var_dof = dt.ncFetch(data_path, 'reference', 'var_dof')
         y_full = dt.ncFetch(data_path, 'reference', 'y_full')
-        config_dz = dt.ncFetch(data_path, 'reference', 'config_dz')
+        config_z = dt.ncFetch(data_path, 'reference', 'config_z_obs')
         config_names = dt.ncFetch(data_path, 'reference', 'config_name')
         norm_factor = dt.ncFetch(data_path, 'reference', 'norm_factor')
         # Last forward model evals are empty
@@ -222,9 +232,9 @@ def plot_prior_post_ref(data_path:str, var_names:Optional[List[str]] = None, val
     tab_colors = get_tab_colors()
     # Loop over configs
     idx_y_full = 0
-    for (c, (num_var, dof, config_name, dz)) in enumerate(
-            zip(num_vars, var_dof, config_names, config_dz)):
-        for v in range(int(num_var)):
+    for (c, (num_var, dof, config_name)) in enumerate(
+            zip(num_vars, var_dof, config_names)):
+        for v in range(int(num_var) - 1):
             if var_names is not None:
                 var_name = var_names[v]
             else:
@@ -234,7 +244,7 @@ def plot_prior_post_ref(data_path:str, var_names:Optional[List[str]] = None, val
             ref_profile = y_full[idx_y_full:idx_y_full+int(dof)]*np.sqrt(norm_factor[v, c])
             prior_profile = g_full[0, idx_y_full:idx_y_full+int(dof), best_particle[0]]*np.sqrt(norm_factor[v, c])
             post_profile = g_full[-1, idx_y_full:idx_y_full+int(dof), best_particle[-1]]*np.sqrt(norm_factor[v, c])
-            z = dz*range(int(dof))
+            z = config_z[:, c]
             plt.plot(ref_profile, z, color='0.2', label='LES')
             plt.plot(prior_profile, z, color='tab:orange', label='Prior')
             plt.plot(post_profile, z, color='tab:green', label='Posterior')
@@ -244,7 +254,7 @@ def plot_prior_post_ref(data_path:str, var_names:Optional[List[str]] = None, val
             delta_profile = max(ref_profile) - min(ref_profile)
             plt.xlim(min(ref_profile) - 0.1*delta_profile,
                 max(ref_profile) + 0.1*delta_profile)
-            plt.ylim(0, 3000)
+            plt.ylim(0, z.max())
             plt.legend(frameon=False)
             plt.ticklabel_format(axis="x", style="sci", scilimits=(-2, 4))
             plt.tight_layout()
