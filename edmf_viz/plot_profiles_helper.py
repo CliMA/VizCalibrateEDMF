@@ -9,12 +9,15 @@ g = 9.81 # gravitational acceleration
 FIELD_MAP = {'cloud_fraction':'cloud_fraction',
     'ql_mean': 'ql_mean',
     'qt_mean': 'qt_mean',
-    'thetal_mean': 'thetali_mean',
+    's_mean' : 's_mean',
     "total_flux_qt": 'qt_flux_z',
     'total_flux_s': 's_flux_z',
+    'thetal_mean': 'thetali_mean',
     'updraft_area': 'updraft_area',
     'u_mean': 'u_translational_mean',
     'v_mean': 'v_translational_mean',}
+
+ZERO_BOUNDED = ("cloud_fraction", "updraft_area", "qt_mean", "ql_mean",)
 
 
 
@@ -55,7 +58,7 @@ def compute_std_time(stats_path:str):
 def plot_profiles(ds:xr.Dataset, 
                 ds_les:xr.Dataset, profiles_ds_les_std = None, ylims = [0, 4000],
                 plot_field_names = ['cloud_fraction', 'ql_mean', 'qt_mean', 
-                    'thetal_mean', "total_flux_qt", 'total_flux_s'],
+                    's_mean', "total_flux_qt", 'total_flux_s'],
                 edmf_label:str = 'EDMF', title:str = None, 
                 save_fig_path:str = False):
 
@@ -77,9 +80,15 @@ def plot_profiles(ds:xr.Dataset,
 
         ax_i.plot(field_var, z,  c = 'r', label = edmf_label)
 
+        left_bound_les_shade = les_field_var - profiles_ds_les_std[les_field_name]
+        right_bound_les_shade = les_field_var + profiles_ds_les_std[les_field_name]
+        # plot LES variance
+        if tc_field_name in ZERO_BOUNDED:
+            left_bound_les_shade = left_bound_les_shade.where(left_bound_les_shade >= 0., 0.)
+
         ax_i.fill_betweenx(ds_les.z,
-                            les_field_var - profiles_ds_les_std[les_field_name],
-                            les_field_var + profiles_ds_les_std[les_field_name],
+                            left_bound_les_shade,
+                            right_bound_les_shade,
                             alpha = 0.3)
         # plot les
         try:

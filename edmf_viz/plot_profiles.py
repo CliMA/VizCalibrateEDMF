@@ -44,8 +44,9 @@ def main():
             profiles_ds_les_std = compute_std_time(les_path)
             prof_fig, prof_ax = plot_profiles(profiles_ds, profiles_ds_les, profiles_ds_les_std,
                         save_fig_path = os.path.join(save_figs_dir, "profiles", rel_path.split("/")[-1] + ".png"))
-        except:
+        except Exception as e:
             print("Failed to plot. ", rel_path)
+            print(e)
     xr.concat(profiles, dim = "zc").to_netcdf(os.path.join(save_figs_dir, "profiles.nc"))
 
 if __name__ == '__main__':
