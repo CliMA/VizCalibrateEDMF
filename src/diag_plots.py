@@ -20,7 +20,7 @@ import data_tools as dt
 def plot_metric(data_paths:List[str], metric:str,
     lower_bound:Optional[str] = None, upper_bound:Optional[str] = None, alpha = 0.5,
     normalize:bool = False, labels:Optional[List[str]] = None, ylim = None, xlim = None,
-    title:Optional[str] = None, logscale:Optional[str] = False):
+    title:Optional[str] = None, logscale:Optional[str] = False, ylabel = None):
     """Plots a metric evolution from the given data_paths.
 
     Since metrics require an evaluation of the forward model,
@@ -65,7 +65,10 @@ def plot_metric(data_paths:List[str], metric:str,
             plt.fill_between(t, var, upp, color=shading, alpha = alpha)
     if logscale:
         plt.yscale("log")
-    plt.ylabel(metric)
+    if ylabel:
+        plt.ylabel(ylabel)
+    else:
+        plt.ylabel(metric)
     plt.xlabel('Iteration')
     if xlim:
         plt.xlim(xlim)
