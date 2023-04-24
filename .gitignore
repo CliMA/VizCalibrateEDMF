@@ -1,0 +1,11 @@
+*.pyc
+
+
+
+# VSCode settings
+settings.json
+
+# outputs folders, files and figures
+output
+*.pdf
+*.png
