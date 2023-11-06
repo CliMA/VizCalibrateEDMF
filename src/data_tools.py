@@ -86,3 +86,18 @@ def full_les_path(path):
     path_split = path.split("/")
     rel_path = os.path.join(*path_split[path_split.index("GCMForcedLES"):])
     return os.path.join("/central/groups/esm/zhaoyi", rel_path)
+
+
+def get_cfsite_les_path(
+    cfsite_number,
+    forcing_model = "HadGEM2-A",
+    month = 7,
+    experiment = "amip"):
+
+    cfsite_number = str(cfsite_number)
+    month = str(month).zfill(2)
+    root_dir = r"/central/groups/esm/zhaoyi/GCMForcedLES/cfsite/{month}/{forcing_model}/{experiment}/".format(month = month, forcing_model = forcing_model, experiment = experiment)
+    rel_dir = "_".join([r"Output.cfsite{cfsite_number}".format(cfsite_number = cfsite_number), forcing_model, experiment, r"2004-2008.{month}.4x".format(month = month)])
+    dir_prefix = os.path.join(root_dir, rel_dir)
+    fname = "Stats.cfsite{cfsite_number}_{forcing_model}_{experiment}_2004-2008.{month}.nc".format(cfsite_number = cfsite_number, forcing_model = forcing_model, experiment = experiment, month = month)
+    return os.path.join(dir_prefix, "stats", fname)
