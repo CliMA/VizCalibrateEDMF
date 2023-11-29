@@ -15,6 +15,7 @@ from src.data_tools import *
 
 T_INTERVAL_FROM_END = 12.0 * 3600.0
 
+
 def main():
 
     parser = argparse.ArgumentParser(description='Compute or load and save pi groups from TurbulenceConvection runs.')
@@ -81,6 +82,24 @@ def main():
             plot_timeseries(profiles_ds_les,
                             plot_field_names =[FIELD_MAP[field] for field in TIMESERIES_MEAN_DEFAULT_FIELDS if "tke_mean" not in field],
                             save_fig_path = os.path.join(save_figs_dir, "timeseries_les", rel_path.split("/")[-1] + ".png"))
+
+
+            # plot histograms 
+            plot_histogram(profiles_ds, save_fig_path = os.path.join(save_figs_dir, "histograms", rel_path.split("/")[-1] + ".png"))
+
+            plot_histogram(profiles_ds, variable_names = ("pi_1", "pi_2", "pi_3", "pi_4", "pi_5", "pi_6"),
+                            save_fig_path = os.path.join(save_figs_dir, "pi_histograms", rel_path.split("/")[-1] + ".png"))
+
+
+            # plot scatter plots
+            plot_scatter(profiles_ds, "updraft_area", save_fig_path = os.path.join(save_figs_dir, "scatter_plots", rel_path.split("/")[-1] + ".png"))
+
+            # more scatter plots 
+            plot_scatter(profiles_ds, "ln_massflux_grad", save_fig_path = os.path.join(save_figs_dir, "scatter_plots2", rel_path.split("/")[-1] + ".png")) 
+            plot_scatter(profiles_ds, "pi_3", save_fig_path = os.path.join(save_figs_dir, "scatter_plots3", rel_path.split("/")[-1] + ".png")) 
+            plot_scatter(profiles_ds, "pi_4", save_fig_path = os.path.join(save_figs_dir, "scatter_plots4", rel_path.split("/")[-1] + ".png")) 
+
+            plot_scatter(profiles_ds, "pi_4", save_fig_path = os.path.join(save_figs_dir, "scatter_plots5", rel_path.split("/")[-1] + ".png")) 
 
         except Exception as e:
             print("Failed to plot. ", rel_path)

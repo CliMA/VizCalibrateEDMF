@@ -19,6 +19,7 @@ FIELD_MAP = {'cloud_fraction':'cloud_fraction',
     'v_mean': 'v_translational_mean',
     'tke_mean': 'tke_nd_mean',
     'updraft_buoyancy': 'buoyancy_mean',
+    # 'buoyancy_mean': 'buoyancy_max',
     'updraft_w': 'w_core'}
 
 # LES field name : TC field name map
@@ -29,6 +30,7 @@ TIMESERIES_MEAN_DEFAULT_FIELDS = ['s_mean', 'ql_mean', 'qt_mean', 'thetal_mean',
 TIMESERIES_UPDRAFT_DEFAULT_FIELDS =['updraft_area', 'updraft_thetal', 'updraft_w', 'updraft_qt', 'updraft_ql', 'updraft_buoyancy', 'entrainment_ml', 'massflux', 'detrainment_ml']
 LES_TIMESERIES_MEAN_DEFAULT_FIELDS = ['cloud_fraction', 'ql_mean', 'qt_mean', 's_mean', 'total_flux_qt', 'total_flux_s', 'thetal_mean', 'u_mean', 'updraft_w']
 
+HIST_VARS = ("updraft_area", "entrainment_ml" , "nondim_entrainment_ml", "massflux", "detrainment_ml", "nondim_detrainment_ml", )
 
 def average_end_ds(ds:xr.Dataset, t_interval_from_end_s = 3 * 3600):
     """ Average dataset from `end - t_interval_from_end_s` to `end` of simulation.
@@ -265,7 +267,7 @@ def compute_pi_groups(profiles_ds:xr.Dataset, timeseries_ds:xr.Dataset, referenc
 
 def plot_pi_entr(ds, aux_field_vals:List[float] = None, shade_cloud_frac:bool = True, 
                 save_fig_path = "fig.png", 
-                ylims = None, xlims = None, save_figs = False, xlog = False):
+                ylims = None, xlims = None, save_figs = False, xlog = False, aux_plots = True):
     ''' Create 3-panel plot with pi groups, fractional entrainment/detrainment, 
     and non-dimensional entrainment/detrainment given datasets with relevant variables.
 
@@ -295,7 +297,7 @@ def plot_pi_entr(ds, aux_field_vals:List[float] = None, shade_cloud_frac:bool = 
                 alpha = (cf_i.item() / cf_max) * 0.75
                 plt.fill_between([-0.1, 1.0], cf_i["zc"].item() - dzh, cf_i["zc"].item() + dzh, alpha=alpha, color='gray')
 
-    plt.xlim([-0.1, 1.0])
+    # plt.xlim([-0.1, 1.0])
 
     plt.legend()
 
@@ -308,15 +310,21 @@ def plot_pi_entr(ds, aux_field_vals:List[float] = None, shade_cloud_frac:bool = 
 
     ax2 = plt.subplot(132)
     if "entrainment_sc" in ds:
-        plt.plot(ds["entrainment_sc"].values, ds.zc.values, label = '$\epsilon_{dyn}$', color = 'b', linewidth = linewidth)
+        plt.plot(ds["entrainment_sc"].values, ds.zc.values, label = '$\epsilon_{dyn}$', alpha = 0.5, color = 'b', linewidth = linewidth)
     if "entrainment_ml" in ds:
-        plt.plot(ds["entrainment_ml"].values, ds.zc.values, label = '$\epsilon^{ML}_{dyn}$', color = 'b', linestyle = '--', linewidth = linewidth)
+        plt.plot(ds["entrainment_ml"].values, ds.zc.values, label = '$\epsilon^{ML}_{dyn}$', alpha = 0.5, color = 'b', linestyle = '--', linewidth = linewidth)
     if "detrainment_sc" in ds:
-        plt.plot(ds["detrainment_sc"].values, ds.zc.values, label = '$\delta_{dyn}$', color = 'r', linewidth = linewidth)
+        plt.plot(ds["detrainment_sc"].values, ds.zc.values, label = '$\delta_{dyn}$', alpha = 0.5, color = 'r', linewidth = linewidth)
     if "detrainment_ml" in ds:
-        plt.plot(ds["detrainment_ml"].values, ds.zc.values, label = '$\delta^{ML}_{dyn}$', color = 'r', linestyle = '--', linewidth = linewidth)
+        plt.plot(ds["detrainment_ml"].values, ds.zc.values, label = '$\delta^{ML}_{dyn}$', alpha = 0.5, color = 'r', linestyle = '--', linewidth = linewidth)
 
-    plt.plot(ds["turbulent_entrainment"].values, ds.zc.values, label = '$\epsilon_{turb}$', color = 'gray', linestyle = '--', linewidth = linewidth)
+    if aux_plots: 
+        plt.plot(abs(ds["ln_massflux_grad"].values), ds.zc.values, label = 'MF Grad', color = 'g', alpha = 0.5, linewidth = linewidth)
+
+    plt.plot(ds["turbulent_entrainment"].values, ds.zc.values, label = '$\epsilon_{turb}$', alpha = 0.5, color = 'gray', linestyle = '--', linewidth = linewidth)
+
+
+
     if aux_field_vals:
         for val in aux_field_vals:
             plt.axhline(y = val, color = 'k', linestyle = '--', alpha = 0.5)
@@ -364,3 +372,58 @@ def plot_pi_entr(ds, aux_field_vals:List[float] = None, shade_cloud_frac:bool = 
         plt.savefig(save_fig_path, dpi = 200)
     
     return (plt.gcf(), plt.gca())
+
+def plot_histogram(dataset, variable_names = HIST_VARS, save_fig_path=None):
+    plt.figure(figsize=(12, 8))
+    
+    for i, variable_name in enumerate(variable_names):
+        plt.subplot(2, 3, i + 1)
+        
+        variable = dataset[variable_name]
+        flattened_data = variable.values.flatten()
+        
+        plt.hist(flattened_data, bins=100, color='skyblue', edgecolor='black')
+        plt.xlabel(variable_name)
+        plt.ylabel('Frequency')
+        plt.title(f'Histogram of {variable_name}')
+        plt.yscale("log")
+    
+    plt.tight_layout()
+    
+    if save_fig_path:
+        dir_name = os.path.dirname(save_fig_path)
+        if not os.path.exists(dir_name):
+            os.makedirs(dir_name)
+        plt.savefig(save_fig_path, dpi=200)
+
+
+def plot_scatter(dataset, x_variable_name, y_variable_names = HIST_VARS, save_fig_path=None):
+    plt.figure(figsize=(12, 8))
+
+    ml_entr_detr_bounds = [0, 5.0]
+    
+    for i, y_variable_name in enumerate(y_variable_names):
+        plt.subplot(2, 3, i + 1)
+        
+        x_variable = dataset[x_variable_name]
+        y_variable = dataset[y_variable_name]
+
+        if x_variable_name == "ln_massflux_grad":
+            x_variable = abs(x_variable)
+        
+        plt.scatter(x_variable, y_variable, s = 1, color='blue', alpha=0.5)
+        plt.xlabel(x_variable_name)
+        plt.ylabel(y_variable_name)
+        plt.title(f'Scatter Plot of {y_variable_name}')
+        if ("ml" in x_variable_name) & ("nondim" in x_variable_name):
+            plt.xlim(*ml_entr_detr_bounds)
+        if ("ml" in y_variable_name) & ("nondim" in y_variable_name):
+            plt.ylim(*ml_entr_detr_bounds)
+    
+    plt.tight_layout()
+    
+    if save_fig_path:
+        dir_name = os.path.dirname(save_fig_path)
+        if not os.path.exists(dir_name):
+            os.makedirs(dir_name)
+        plt.savefig(save_fig_path, dpi=200)
