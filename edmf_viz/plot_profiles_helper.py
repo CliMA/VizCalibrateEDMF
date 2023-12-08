@@ -29,6 +29,7 @@ ZERO_BOUNDED = ("cloud_fraction", "updraft_area", "qt_mean", "ql_mean",)
 TIMESERIES_MEAN_DEFAULT_FIELDS = ['s_mean', 'ql_mean', 'qt_mean', 'thetal_mean', 'total_flux_qt', 'total_flux_s', 'tke_mean', 'updraft_buoyancy', 'updraft_w']
 TIMESERIES_UPDRAFT_DEFAULT_FIELDS =['updraft_area', 'updraft_thetal', 'updraft_w', 'updraft_qt', 'updraft_ql', 'updraft_buoyancy', 'entrainment_ml', 'massflux', 'detrainment_ml']
 LES_TIMESERIES_MEAN_DEFAULT_FIELDS = ['cloud_fraction', 'ql_mean', 'qt_mean', 's_mean', 'total_flux_qt', 'total_flux_s', 'thetal_mean', 'u_mean', 'updraft_w']
+ENTR_DETR_VARS = ["pi_1", "pi_2", "pi_3", "pi_4", "pi_5", "pi_6", "nondim_entrainment_ml",  "nondim_detrainment_ml", "entrainment_ml", "detrainment_ml", "updraft_area"]
 
 HIST_VARS = ("updraft_area", "entrainment_ml" , "nondim_entrainment_ml", "massflux", "detrainment_ml", "nondim_detrainment_ml", )
 
