@@ -22,10 +22,12 @@ def main():
     parser.add_argument("--tc_output_dir", required=True, help="Directory containing TurbulenceConvection runs.")
     parser.add_argument("--save_figs_dir", help="Directory to save the resulting figures. Defaults to ../figs/<NAME>.")
     parser.add_argument("--aux_plots", required=False, type=bool, help="Whether to include auxiliary plots.")
+    parser.add_argument("--override_plots", type=bool, default=True, help="If True, remake plots in --save_figs_dir, otherwise only add plots that don't exist")
     args = parser.parse_args()
 
     data_dir = args.tc_output_dir
     aux_plots = args.aux_plots
+    override_plots = args.override_plots
 
     # Default save_figs_dir to "../figs/<NAME>" where <NAME> is the last part of the tc_output_dir
     if args.save_figs_dir:
@@ -44,71 +46,116 @@ def main():
         rel_path = os.path.join(data_dir, rel_path)
         stats = stats_path(rel_path)
         namelist = load_namelist(namelist_path(rel_path))
-        try:
-            # plot entrainment/detrainment
-            profiles_ds, timeseries_ds, reference_ds = preprocess_stats(stats, t_interval_from_end_s = T_INTERVAL_FROM_END, drop_zero_area = True)
-            pi_var_names = get_pi_var_names(namelist)
-            # if pi groups saved in TC stats file, use those. Otherwise compute offline
-            if any(pi_var_name in profiles_ds for pi_var_name in pi_var_names):
-                pi_groups = get_pi_groups(profiles_ds, namelist)
-            else:
-                print(f"No pi groups found in output. Computing offline...")
-                pi_groups = compute_pi_groups(profiles_ds, timeseries_ds, reference_ds, namelist)
-            ds = xr.merge([profiles_ds, pi_groups])
-            pi_fig, pi_ax = plot_pi_entr(ds,
-                    aux_field_vals = (timeseries_ds["updraft_cloud_base"].item(), timeseries_ds["updraft_cloud_top"].item()),
-                    save_fig_path = os.path.join(save_figs_dir, "entr_profiles", rel_path.split("/")[-1] + ".png"))
-            profiles.append(ds)
+        # try:
+        # plot entrainment/detrainment
+        profiles_ds, timeseries_ds, reference_ds = preprocess_stats(stats, t_interval_from_end_s = T_INTERVAL_FROM_END, drop_zero_area = True)
+        pi_var_names = get_pi_var_names(namelist)
+        # if pi groups saved in TC stats file, use those. Otherwise compute offline
+        if any(pi_var_name in profiles_ds for pi_var_name in pi_var_names):
+            pi_groups = get_pi_groups(profiles_ds, namelist)
+        else:
+            print(f"No pi groups found in output. Computing offline...")
+            pi_groups = compute_pi_groups(profiles_ds, timeseries_ds, reference_ds, namelist)
+        ds = xr.merge([profiles_ds, pi_groups])
+        pi_fig, pi_ax = plot_pi_entr(ds,
+                # aux_field_vals = (timeseries_ds["updraft_cloud_base"].item(), timeseries_ds["updraft_cloud_top"].item()), # turn on for cloud base
+                save_fig_path = os.path.join(save_figs_dir, "entr_profiles", rel_path.split("/")[-1] + ".png"))
+        profiles.append(ds)
 
-            # plot profiles
-            profiles_ds, timeseries_ds, reference_ds = preprocess_stats(stats, t_interval_from_end_s = T_INTERVAL_FROM_END,)
-            les_path = full_les_path(namelist['meta']['lesfile'])
-            profiles_ds_les, _ , _ = preprocess_stats(les_path,
-                                                    t_interval_from_end_s = T_INTERVAL_FROM_END,
-                                                    interp_z = profiles_ds.zc,
-                                                    rectify_surface_fluxes = True)
+        # plot profiles
+        profiles_ds, timeseries_ds, reference_ds = preprocess_stats(stats, t_interval_from_end_s = T_INTERVAL_FROM_END,)
+        les_path = full_les_path(namelist['meta']['lesfile'])
+        profiles_ds_les, _ , _ = preprocess_stats(les_path,
+                                                t_interval_from_end_s = T_INTERVAL_FROM_END,
+                                                interp_z = profiles_ds.zc,
+                                                rectify_surface_fluxes = True)
 
-            profiles_ds_les_unaveraged, _ , _ = preprocess_stats(les_path, interp_z = profiles_ds.zc, t_interval_from_end_s = None)
-            profiles_ds_les_std = compute_std_time(profiles_ds_les_unaveraged)
+        profiles_ds_les_unaveraged, _ , _ = preprocess_stats(les_path, interp_z = profiles_ds.zc, t_interval_from_end_s = None)
+        profiles_ds_les_std = compute_std_time(profiles_ds_les_unaveraged)
 
-            prof_fig, prof_ax = plot_profiles(profiles_ds, profiles_ds_les, profiles_ds_les_std,
-                        save_fig_path = os.path.join(save_figs_dir, "profiles", rel_path.split("/")[-1] + ".png"))
+        prof_fig, prof_ax = plot_profiles(profiles_ds, profiles_ds_les, profiles_ds_les_std,
+                    plot_field_names = ['ql_mean',"total_flux_qt",'total_flux_s'],
+                    save_fig_path = os.path.join(save_figs_dir, "profiles", rel_path.split("/")[-1] + ".png"))
 
-            # plot timeseries
-            profiles_ds, timeseries_ds, reference_ds = preprocess_stats(stats, t_interval_from_end_s = None)
-            profiles_ds_les, _ , _ = preprocess_stats(les_path, t_interval_from_end_s = None)
-            plot_timeseries(profiles_ds,
-                            save_fig_path = os.path.join(save_figs_dir, "timeseries", rel_path.split("/")[-1] + ".png"))
-            plot_timeseries(profiles_ds,
-                            plot_field_names = TIMESERIES_UPDRAFT_DEFAULT_FIELDS,
-                            save_fig_path = os.path.join(save_figs_dir, "timeseries_updraft", rel_path.split("/")[-1] + ".png"))
-            plot_timeseries(profiles_ds_les,
-                            plot_field_names =[FIELD_MAP[field] for field in TIMESERIES_MEAN_DEFAULT_FIELDS if "tke_mean" not in field],
-                            save_fig_path = os.path.join(save_figs_dir, "timeseries_les", rel_path.split("/")[-1] + ".png"))
+        # plot timeseries
+        profiles_ds, timeseries_ds, reference_ds = preprocess_stats(stats, t_interval_from_end_s = None)
+        profiles_ds_les, _ , _ = preprocess_stats(les_path, t_interval_from_end_s = None)
+        plot_timeseries(profiles_ds,
+                        save_fig_path = os.path.join(save_figs_dir, "timeseries_tc", rel_path.split("/")[-1] + ".png"))
+        plot_timeseries(profiles_ds,
+                        plot_field_names = TIMESERIES_UPDRAFT_DEFAULT_FIELDS,
+                        save_fig_path = os.path.join(save_figs_dir, "timeseries_tc_updraft", rel_path.split("/")[-1] + ".png"))
 
-            profiles_full.append(profiles_ds[ENTR_DETR_VARS])
+        plot_timeseries(profiles_ds,
+                        plot_field_names = TIMESERIES_UPDRAFT_MORE_FIELDS,
+                        save_fig_path = os.path.join(save_figs_dir, "timeseries_tc_updraft_more", rel_path.split("/")[-1] + ".png"))
 
-            if aux_plots:
-                # plot histograms 
-                plot_histogram(profiles_ds, save_fig_path = os.path.join(save_figs_dir, "histograms", rel_path.split("/")[-1] + ".png"))
+        plot_timeseries(profiles_ds,
+                        plot_field_names = FLUXVARS,
+                        save_fig_path = os.path.join(save_figs_dir, "timeseries_tc_flux", rel_path.split("/")[-1] + ".png"))
 
-                plot_histogram(profiles_ds, variable_names = ("pi_1", "pi_2", "pi_3", "pi_4", "pi_5", "pi_6"),
-                                save_fig_path = os.path.join(save_figs_dir, "pi_histograms", rel_path.split("/")[-1] + ".png"))
+                        
+        plot_timeseries(profiles_ds,
+                    plot_field_names = TIMESERIES_ENV_DEFAULT_FIELDS,
+                    save_fig_path = os.path.join(save_figs_dir, "timeseries_tc_env", rel_path.split("/")[-1] + ".png"))
+
+        plot_entr_timeseries(profiles_ds,
+                        plot_field_names = ENTR_FIELDS,
+                        save_fig_path = os.path.join(save_figs_dir, "timeseries_tc_entr", rel_path.split("/")[-1] + ".png"))
+
+        plot_timeseries(profiles_ds_les,
+                        plot_field_names =[FIELD_MAP[field] for field in TIMESERIES_MEAN_DEFAULT_FIELDS if "tke_mean" not in field],
+                        save_fig_path = os.path.join(save_figs_dir, "timeseries_les", rel_path.split("/")[-1] + ".png"))
+
+        
+        profiles_ds["theta_tend_diff"] = profiles_ds["theta_tend_relax"] / profiles_ds["theta_tend_nonrelax"]
+        profiles_ds["theta_tend_diff"] = profiles_ds["theta_tend_diff"].where(profiles_ds["theta_tend_relax"] != 0.0)
+        profiles_ds["qt_tend_diff"] = profiles_ds["qt_tend_relax"] / profiles_ds["qt_tend_nonrelax"]
+        profiles_ds["qt_tend_diff"] = profiles_ds["qt_tend_diff"].where(profiles_ds["qt_tend_relax"] != 0.0)
+
+        profiles_ds["rhoa_tend_diff"] = profiles_ds["rhoa_tend_relax"] / profiles_ds["rhoa_tend_nonrelax"]
+        profiles_ds["rhoa_tend_diff"] = profiles_ds["rhoa_tend_diff"].where(profiles_ds["rhoa_tend_relax"] != 0.0)
+        profiles_ds["mf_tend_c_diff"] = profiles_ds["mf_tend_relax_c"] / profiles_ds["mf_tend_nonrelax_c"]
+        profiles_ds["mf_tend_c_diff"] = profiles_ds["mf_tend_c_diff"].where(profiles_ds["mf_tend_relax_c"] != 0.0)
+
+        plot_timeseries(profiles_ds,
+                        plot_field_names =TIMESERIES_THETA_QT_TENDS,
+                        nrows = 4, 
+                        ncols = 4,
+                        save_fig_path = os.path.join(save_figs_dir, "timeseries_tc_tends_theqt", rel_path.split("/")[-1] + ".png"))
+
+        plot_tends_timeseries(profiles_ds,
+                        plot_field_names = TEND_FIELDS,
+                        save_fig_path = os.path.join(save_figs_dir, "timeseries_tc_tends", rel_path.split("/")[-1] + ".png"))
+
+        
 
 
-                # plot scatter plots
-                plot_scatter(profiles_ds, "updraft_area", save_fig_path = os.path.join(save_figs_dir, "scatter_plots", rel_path.split("/")[-1] + ".png"))
 
-                # more scatter plots 
-                plot_scatter(profiles_ds, "ln_massflux_grad", save_fig_path = os.path.join(save_figs_dir, "scatter_plots2", rel_path.split("/")[-1] + ".png")) 
-                plot_scatter(profiles_ds, "pi_3", save_fig_path = os.path.join(save_figs_dir, "scatter_plots3", rel_path.split("/")[-1] + ".png")) 
-                plot_scatter(profiles_ds, "pi_4", save_fig_path = os.path.join(save_figs_dir, "scatter_plots4", rel_path.split("/")[-1] + ".png")) 
 
-                plot_scatter(profiles_ds, "pi_4", save_fig_path = os.path.join(save_figs_dir, "scatter_plots5", rel_path.split("/")[-1] + ".png")) 
+        profiles_full.append(profiles_ds[ENTR_DETR_VARS])
 
-        except Exception as e:
-            print("Failed to plot. ", rel_path)
-            print(e)
+        # if aux_plots:
+        #     # plot histograms 
+        #     plot_histogram(profiles_ds, save_fig_path = os.path.join(save_figs_dir, "histograms", rel_path.split("/")[-1] + ".png"))
+
+        #     plot_histogram(profiles_ds, variable_names = ("pi_1", "pi_2", "pi_3", "pi_4", "pi_5", "pi_6"),
+        #                     save_fig_path = os.path.join(save_figs_dir, "pi_histograms", rel_path.split("/")[-1] + ".png"))
+
+
+        #     # plot scatter plots
+        #     plot_scatter(profiles_ds, "updraft_area", save_fig_path = os.path.join(save_figs_dir, "scatter_plots", rel_path.split("/")[-1] + ".png"))
+
+        #     # more scatter plots 
+        #     plot_scatter(profiles_ds, "ln_massflux_grad", save_fig_path = os.path.join(save_figs_dir, "scatter_plots2", rel_path.split("/")[-1] + ".png")) 
+        #     plot_scatter(profiles_ds, "pi_3", save_fig_path = os.path.join(save_figs_dir, "scatter_plots3", rel_path.split("/")[-1] + ".png")) 
+        #     plot_scatter(profiles_ds, "pi_4", save_fig_path = os.path.join(save_figs_dir, "scatter_plots4", rel_path.split("/")[-1] + ".png")) 
+
+        #     plot_scatter(profiles_ds, "pi_4", save_fig_path = os.path.join(save_figs_dir, "scatter_plots5", rel_path.split("/")[-1] + ".png")) 
+
+        # except Exception as e:
+        #     print("Failed to plot. ", rel_path)
+        #     print(e)
     xr.concat(profiles, dim = "zc").to_netcdf(os.path.join(save_figs_dir, "profiles.nc"))
     xr.concat(profiles_full, dim = "zc").to_netcdf(os.path.join(save_figs_dir, "profiles_full.nc"))
 
