@@ -9,6 +9,8 @@ import json
 import netCDF4 as nc
 import numpy as np
 import os
+import xarray as xr
+import seaborn
 
 def vectorize(data_path:str) -> Tuple[List[float], List[float]]:
     """Take two columns of csv format data and return as two arrays.
@@ -27,6 +29,27 @@ def vectorize(data_path:str) -> Tuple[List[float], List[float]]:
         x.append(float(linelist[0]))
         y.append(float(linelist[1]))   
     return x,y
+
+def preprocess_diags(ds_path):
+    """Open all groups in calibration `Diagnostics.nc` file and return as dict.
+
+    Args:
+     - ds_path: path to Diagnostics.nc file
+    """
+    group_names = ("ensemble_diags", "reference", "particle_diags", "metrics", "prior")
+    ds_dict = {}
+    for group_name in group_names:
+        ds_dict[group_name] = xr.open_dataset(ds_path, group = group_name)
+        if not (group_name in ("reference", "prior")):
+            ds_dict[group_name] = ds_dict[group_name].sel(iteration = slice(1, ds_dict[group_name]["iteration"].max().item() - 1))
+
+    var_names = ds_dict["reference"]["ref_variable_names"].values[:,1]
+    for var_name_i in range(len(var_names)):
+        var_name = var_names[var_name_i]
+        ds_dict["particle_diags"]["mse_{}_full".format(var_name)] = ds_dict["particle_diags"]["mse_by_var_full"].isel(config_field = var_name_i)
+
+    return ds_dict
+
 
 def ncFetch(directory:str, group:str, variable:str) -> np.ndarray:
     """Reads a variable from a netCDF file.
@@ -80,6 +103,9 @@ def stats_path(output_dir, multi_path = False):
         if len(file_paths) > 1:
             raise Exception("Multiple *.nc files found in directory.")
         return file_paths[0]
+
+def diagnostics_nc_path(rel_path):
+    return os.path.join(rel_path, "Diagnostics.nc")
 
 def full_les_path(path):
     """Get absolute path to LES file, given path of the form `../../../../../zhaoyi/GCMForcedLES/`"""

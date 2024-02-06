@@ -13,6 +13,8 @@ import pandas as pd
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from string import ascii_lowercase
 from math import floor
+import xarray as xr
+import seaborn
 
 from helper_funcs import convert2rgb, get_tab_colors
 import data_tools as dt
@@ -82,6 +84,156 @@ def plot_metric(data_paths:List[str], metric:str,
     plt.tight_layout()
     plt.savefig(metric+'.pdf', format='pdf')
     return
+
+
+
+def plot_var_mse(ds_dict:dict,
+                nrows:int = 3,
+                ncols:int = 2,
+                save_fig_path:str = False):
+
+
+    var_names = ds_dict["reference"]["ref_variable_names"].isel(config = 0).values
+
+    fig, axs = plt.subplots(nrows, ncols, sharex = True, figsize=(ncols * 7, nrows * 4))
+    if nrows > 1 and ncols > 1:
+        axs = axs.flatten()
+
+    for var_name_i, ax in zip(range(len(var_names)), axs):
+        var_name = var_names[var_name_i]
+        mse_field_name = "mse_{}_full".format(var_name)
+
+        u_dataframe = ds_dict["particle_diags"][mse_field_name].to_dataframe().reset_index()
+
+        seaborn.stripplot(x = u_dataframe['iteration'],
+                             y = u_dataframe[mse_field_name],
+                             data = u_dataframe[['iteration', mse_field_name]],
+                             ax = ax,
+                             c = 'k',
+                             alpha = 0.3,
+                             size = 2.0)
+
+        u_dataframe["iteration"] = u_dataframe["iteration"] - 1
+        mean_values = u_dataframe.groupby('iteration')[mse_field_name].mean()
+        ax.plot(mean_values, label='Mean', color='blue')
+        ax.set_title(var_name, weight = "bold")
+
+        max_val = u_dataframe[mse_field_name].max()
+        ax.set_ylim(0, max_val)
+
+        ax.set_ylabel('')
+        ax.grid()
+
+    if save_fig_path:
+        dir_name = os.path.dirname(save_fig_path)
+        if not os.path.exists(dir_name):
+            os.makedirs(dir_name)
+        plt.savefig(save_fig_path, dpi=200)
+
+def construct_profiles(ds_dict:dict, iteration:int = 1, integrated_quantities:list = ['lwp_mean']):
+    """
+    Unpack profiles (and integrated quanities like LWP) from g_full and y_full vectors.
+    """
+
+    ds_ref = ds_dict["reference"]
+    ds_particle = ds_dict["particle_diags"]
+    var_names = ds_ref["ref_variable_names"].isel(config = 0).values
+    num_vars = len(var_names)
+    num_cases = len(ds_ref['config'])
+
+    num_particles = len(ds_particle.particle)
+    dof = len(ds_ref.dof)
+    norm_factor = ds_ref.norm_factor
+
+    all_g = np.zeros((num_cases, num_vars, num_particles, dof)) #(num_cases, num_vars, num_particles, num_grid_points)
+    all_g_integrated = np.zeros((num_cases, num_vars, num_particles, 1))
+    all_y = np.zeros((num_cases, num_vars, dof))
+    all_y_integrated = np.zeros((num_cases, num_vars, 1))
+
+    print("Constructing profiles for iteration ", iteration)
+
+    idx_y_full = 0
+    for case_num in range(num_cases):
+        for var_ind in range(ds_ref.num_vars[case_num].item()):
+            var_name = var_names[var_ind]
+            if var_name in integrated_quantities:
+                dof = 1
+            else:
+                dof = np.count_nonzero(ds_ref["config_z_obs"].isel(config = case_num))
+
+            y_full_train = ds_ref.y_full.values[idx_y_full:idx_y_full+int(dof)]*np.sqrt(norm_factor[var_ind, case_num]).item()
+            if dof != 1:
+                all_y[case_num, var_ind, :dof] = y_full_train
+            elif dof == 1:
+                all_y_integrated[case_num, var_ind, :] = y_full_train
+            for particle_num in range(num_particles):
+                g_y_val = ds_particle.g_full.isel(particle = particle_num, iteration = iteration).values[idx_y_full:idx_y_full+int(dof)]*np.sqrt(norm_factor[var_ind, case_num]).item()
+                if dof != 1:
+                    all_g[case_num, var_ind, particle_num, :dof] = g_y_val
+                elif dof == 1:
+                    all_g_integrated[case_num, var_ind, particle_num, :] = g_y_val
+
+            idx_y_full += int(dof)
+
+    out_dict = {}
+    out_dict["all_g"] = all_g
+    out_dict["all_g_integrated"] = all_g_integrated
+    out_dict["all_y"] = all_y
+    out_dict["all_y_integrated"] = all_y_integrated
+    return out_dict
+
+def plot_y_profiles(ds_dict:dict,
+                    y_dict:dict,
+                    case_i:int = 0,
+                    nrows:int = 2,
+                    ncols:int = 3,
+                    integrated_quantities:list = ['lwp_mean'],
+                    save_fig_path:str = False):
+
+    """Plot profiles (and integrated quanities like LWP) from dict created from `construct_profiles`"""
+
+    ds_ref = ds_dict["reference"]
+    var_names = ds_ref["ref_variable_names"].isel(config = 0).values
+
+    num_vars = len(var_names)
+    z_val = ds_ref.config_z_obs.values[:,case_i]
+
+    fig , ax = plt.subplots(nrows, ncols, sharey = True, figsize = (15,8))
+    for var_i in range(y_dict["all_g"].shape[1]):
+        ax_i = ax[np.unravel_index(var_i, (nrows, ncols))]
+        var_name = var_names[var_i]
+        z_case_i = ds_ref["config_z_obs"].isel(config = case_i)
+        if var_name in integrated_quantities:
+            ax_i.axvline(x=y_dict["all_y_integrated"][case_i, var_i,:].item(), color='k', linestyle='-')
+            x_var = y_dict["all_g_integrated"][case_i, var_i,:]
+            ax_i.scatter(x_var, (z_case_i.max().item()/2)*np.ones(len(x_var)), s = 10, alpha = 0.3)
+        else:
+            dof = np.count_nonzero(z_case_i)
+            ax_i.plot(y_dict["all_g"][case_i, var_i,:,:dof].T, z_val[:dof], alpha = 0.2)
+            ax_i.plot(y_dict["all_y"][case_i, var_i, :dof], z_val[:dof], c = 'k')
+
+        ax_i.set_title(var_names[var_i])
+        ax_i.set_ylim(0, z_case_i.max())
+        ax_i.grid()
+    plt.suptitle(ds_ref['config_name'].values[case_i])
+
+    if save_fig_path:
+        dir_name = os.path.dirname(save_fig_path)
+        if not os.path.exists(dir_name):
+            os.makedirs(dir_name)
+        plt.savefig(save_fig_path, dpi=200)
+
+
+def plot_y_profiles_iter(ds_dict_full, profiles, iterations:list = [1, 5], save_fig_dir = "./figs/y_profiles"):
+    case_names = ds_dict_full["reference"]["config_name"].values
+    for iteration in iterations:
+        profiles = construct_profiles(ds_dict_full, iteration = iteration)
+        for case_i in range(len(case_names)):
+            case_name_i = case_names[case_i]
+            save_fig_path = os.path.join(save_fig_dir, "iter_{}/case{}.pdf".format(iteration, case_i))
+            plot_y_profiles(ds_dict_full, profiles, case_i = case_i, save_fig_path = save_fig_path)
+
+
 
 def plot_epoch_avg_metric(data_paths:List[str], metric:str,
     lower_bound:Optional[str] = None, upper_bound:Optional[str] = None,
