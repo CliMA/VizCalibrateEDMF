@@ -9,9 +9,10 @@ from src.data_tools import *
 
 T_INTERVAL_FROM_END = 12.0 * 3600.0
 
-# path to TC.jl output root folder
-linreg_entr_data_dir = "/groups/esm/cchristo/clima/CalibrateEDMF.jl/tools/results_Inversion_p22_e300_i15_mb_LES_2024-03-15_10-08_Vxo_longer_long_run_last_nn_particle_mean_on_all_amip4K_samples"
-nn_entr_data_dir = "/groups/esm/cchristo/clima/CalibrateEDMF.jl/tools/results_Inversion_p247_e300_i15_mb_LES_2024-03-16_12-15_Vxo_longer_long_run_last_nn_particle_mean_on_all_amip4K_samples"
+# path to TC.jl output root folder (or on Zenodo (see Christopoulos et al., 2024))
+data_rel_path = "/central/groups/esm/cchristo/data/james_2024_submission/calibration_diagnostics"
+linreg_entr_data_dir = os.path.join(data_rel_path, "linreg_full_cal/AMIP4K_simulations")
+nn_entr_data_dir =  os.path.join(data_rel_path, "nn_full_cal/AMIP4K_simulations")
 
 
 def make_entr_profs_for_dir(data_dir, save_figs_dir, **kwargs):

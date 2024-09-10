@@ -14,68 +14,70 @@ from src.diag_plots import *
 from compute_mse_parallel import *
 
 
+# the required data can be found on Zenodo (see Christopoulos et al., 2024) or in /groups/esm/cchristo/data/james_2024_submission on Caltech HPC.
+data_rel_path = "/groups/esm/cchristo/data/james_2024_submission"
+
 # load profiles from training set
-nn_path = "/groups/esm/cchristo/clima/VizCalibrateEDMF/src/figs/james_v1_dev/neural_net_all_profiles_validation_v1_debug_profiles_dataset.nc"
-linreg_path =  "/groups/esm/cchristo/clima/VizCalibrateEDMF/src/figs/james_v1_dev/linreg_all_profiles_validation_v1_debug_profiles_dataset.nc"
+nn_path = os.path.join(data_rel_path, "calibration_diagnostics/nn_full_cal/nn_full_cal_unpacked_profiles_training.nc")
+linreg_path = os.path.join(data_rel_path, "calibration_diagnostics/linreg_full_cal/linreg_full_cal_unpacked_profiles_training.nc")
 # (5, 176, 6, 300, 80) (iters, #cases, #num_vars, #ensemble, #vertical levels)
 ds_nn = xr.open_dataset(nn_path).load()
 ds_linreg = xr.open_dataset(linreg_path)
 
 # load profiles from validation set
-nn_path_val = "/groups/esm/cchristo/clima/VizCalibrateEDMF/src/figs/james_v1_dev/neural_net_all_profiles_real_validation_v1_debug_profiles_dataset.nc"
-linreg_path_val =  "/groups/esm/cchristo/clima/VizCalibrateEDMF/src/figs/james_v1_dev/linreg_all_profiles_real_validation_v1_debug_profiles_dataset.nc"
+nn_path_val = os.path.join(data_rel_path, "calibration_diagnostics/nn_full_cal/nn_full_cal_unpacked_profiles_validation.nc")
+linreg_path_val = os.path.join(data_rel_path, "calibration_diagnostics/linreg_full_cal/linreg_full_cal_unpacked_profiles_validation.nc")
 ds_nn_val = xr.open_dataset(nn_path_val).load()
 ds_linreg_val = xr.open_dataset(linreg_path_val)
 
 # load ensemble particle data 
-nn_diag_path = "/groups/esm/cchristo/cedmf_results/james_v1_runs/results_Inversion_p247_e300_i15_mb_LES_2024-03-16_12-15_Vxo_longer_long_run/Diagnostics.nc"
+nn_diag_path = os.path.join(data_rel_path, "calibration_diagnostics/nn_full_cal/output/Diagnostics.nc")
 ds_diagnostics_nn = xr.open_dataset(nn_diag_path, group = "particle_diags")
 ds_ref = xr.open_dataset(nn_diag_path, group = "reference")
 
-linreg_diag_path = "/groups/esm/cchristo/cedmf_results/james_v1_runs/results_Inversion_p22_e300_i15_mb_LES_2024-03-15_10-08_Vxo_longer_long_run/Diagnostics.nc"
+linreg_diag_path = os.path.join(data_rel_path, "calibration_diagnostics/linreg_full_cal/output/Diagnostics.nc")
 ds_diagnostics_linreg = xr.open_dataset(linreg_diag_path, group = "particle_diags")
 ds_ref = xr.open_dataset(linreg_diag_path, group = "reference")
 
-y_les_path = "/groups/esm/cchristo/clima/VizCalibrateEDMF/src/figs/james_v1_dev/neural_net_y_profiles_v1_y_profiles_dataset.nc"
+y_les_path = os.path.join(data_rel_path, "calibration_diagnostics/les_y_full_cal/les_y_profiles_training.nc")
 ds_y = xr.open_dataset(y_les_path).load()
 ds_y.coords['case'] = ds_y.coords['case'] + 1
 
-y_les_path_val = "/groups/esm/cchristo/clima/VizCalibrateEDMF/src/figs/james_v1_dev/neural_net_y_profiles_real_validation_v1_y_profiles_dataset.nc"
+y_les_path_val = os.path.join(data_rel_path, "calibration_diagnostics/les_y_full_cal/les_y_profiles_validation.nc")
 ds_y_val = xr.open_dataset(y_les_path_val).load()
 ds_y_val.coords['case'] = ds_y_val.coords['case'] + 1
 
 
-
 # compute mse for training set
-num_iterations = 50 
+max_plot_iteration = 50 
 num_variables = 6
 
-mse_ds_nn, mse_by_particle_ds_nn = compute_offline_mse_from_unpacked_profiles(ds_nn, ds_y, ds_diagnostics_nn,  num_iterations = num_iterations, num_variables = num_variables)
-mse_ds_linreg, mse_by_particle_ds_linreg = compute_offline_mse_from_unpacked_profiles(ds_linreg, ds_y, ds_diagnostics_linreg,  num_iterations = num_iterations, num_variables = num_variables)
+mse_ds_nn, mse_by_particle_ds_nn = compute_offline_mse_from_unpacked_profiles(ds_nn, ds_y, ds_diagnostics_nn,  num_iterations = max_plot_iteration, num_variables = num_variables)
+mse_ds_linreg, mse_by_particle_ds_linreg = compute_offline_mse_from_unpacked_profiles(ds_linreg, ds_y, ds_diagnostics_linreg,  num_iterations = max_plot_iteration, num_variables = num_variables)
 
 
-mse_list = [mse_ds_nn.copy(), mse_ds_linreg.copy()]
-mse_by_particle_list = [mse_by_particle_ds_nn.copy(), mse_by_particle_ds_linreg.copy()]
+mse_list = [mse_ds_linreg.copy(), mse_ds_nn.copy()]
+mse_by_particle_list = [mse_by_particle_ds_linreg.copy(), mse_by_particle_ds_nn.copy(),]
 
 
 
-mse_ds_nn_val, mse_by_particle_ds_nn_val = compute_offline_mse_from_unpacked_profiles(ds_nn_val, ds_y_val, ds_diagnostics_nn,  num_iterations = num_iterations, num_variables = num_variables, val_bool = True)
-mse_ds_linreg_val, mse_by_particle_ds_linreg_val = compute_offline_mse_from_unpacked_profiles(ds_linreg_val, ds_y_val, ds_diagnostics_linreg,  num_iterations = num_iterations, num_variables = num_variables, val_bool = True)
+mse_ds_nn_val, mse_by_particle_ds_nn_val = compute_offline_mse_from_unpacked_profiles(ds_nn_val, ds_y_val, ds_diagnostics_nn,  num_iterations = max_plot_iteration, num_variables = num_variables, val_bool = True)
+mse_ds_linreg_val, mse_by_particle_ds_linreg_val = compute_offline_mse_from_unpacked_profiles(ds_linreg_val, ds_y_val, ds_diagnostics_linreg,  num_iterations = max_plot_iteration, num_variables = num_variables, val_bool = True)
 
 
-mse_list_val = [mse_ds_nn_val.copy(), mse_ds_linreg_val.copy()]
-mse_by_particle_list_val = [mse_by_particle_ds_nn_val.copy(), mse_by_particle_ds_linreg_val.copy()]
+mse_list_val = [mse_ds_linreg_val.copy(), mse_ds_nn_val.copy(),]
+mse_by_particle_list_val = [mse_by_particle_ds_linreg_val.copy(), mse_by_particle_ds_nn_val.copy()]
 
 
 
 var_names = ["s_mean", "ql_mean", "qt_mean", "total_flux_qt", "total_flux_s", "lwp_mean"]
 
 # compute rmse over baseline simulations in the training set
-baseline_training_set_dir = "/groups/esm/cchristo/clima/TurbulenceConvection.jl/output_mf_baseline_james_v1_amip_all"
+baseline_training_set_dir = "/central/groups/esm/cchristo/cedmf_results/james_v1_runs/md_edmf_amip"
 baseline_training_rmses = compute_rmse_from_dir(baseline_training_set_dir, var_names)
 
 # compute rmse over baseline simulations in the validation set
-baseline_validation_set_dir = "/groups/esm/cchristo/clima/TurbulenceConvection.jl/output_mf_baseline_james_v1_amip4K"
+baseline_validation_set_dir = os.path.join(data_rel_path, "baseline_EDMF_simulations/md_AMIP4K")
 baseline_validation_rmses = compute_rmse_from_dir(baseline_validation_set_dir, var_names)
 
 plot_labels = [
@@ -91,15 +93,16 @@ res = plot_var_offline(mse_list, mse_by_particle_list,
                         ncols = 1,
                         var_names = var_names, 
                         box_and_whiskers = False,
-                        iterations_per_epoch = 16, 
+                        iterations_per_epoch = 11,
                         ylims = ylims,
                         max_min_shading = True,
-                        # suptitle = "Training",
+                        suptitle = None,
                         plot_name_map = PLOT_NAME_MAP_ABBREVIATED,
                         baseline_hz_line = baseline_training_rmses,
                         legend_labels = None,
+                        curve_colors = ['red', 'blue'],
                         linewidth=2, 
-                        save_fig_path = "./figs/mse_plots_train_v1_fig1.pdf",
+                        save_fig_path = "./figs/mse_plots_train_v2_fig1.pdf",
                         plot_labels = plot_labels)
 
 
@@ -108,16 +111,17 @@ res = plot_var_offline(mse_list_val, mse_by_particle_list_val,
                         ncols = 1,
                         var_names = var_names, 
                         box_and_whiskers = False,
-                        iterations_per_epoch = 16, 
+                        iterations_per_epoch = 11,
                         ylims = ylims,
                         max_min_shading = True,
                         ylabel_bool = False,
-                        # suptitle = "Training",
+                        suptitle = None,
                         plot_name_map = PLOT_NAME_MAP_ABBREVIATED,
                         baseline_hz_line = baseline_validation_rmses,
-                        legend_labels = ["NN", "Linreg", "Cohen et al., 2020",],
+                        legend_labels = ["EDMF-Linreg", "EDMF-NN", "Cohen et al., 2020",],
+                        curve_colors = ['red', 'blue'],
                         linewidth=2.5,
-                        save_fig_path = "./figs/mse_plots_val_v1_fig1.pdf",
+                        save_fig_path = "./figs/mse_plots_val_v2_fig1.pdf",
                         plot_labels = plot_labels)
 
 

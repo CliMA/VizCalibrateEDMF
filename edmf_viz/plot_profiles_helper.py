@@ -198,11 +198,12 @@ def plot_profiles(ds:xr.Dataset,
 
 
 
-def plot_profiles_combined(ds:xr.Dataset, ds2:xr.Dataset,
+def plot_profiles_combined(ds:xr.Dataset, ds2:xr.Dataset, ds3:xr.Dataset,
                   ds_les:xr.Dataset = None, profiles_ds_les_std = None, ylims = [0, 4000],
                   plot_field_names = ['cloud_fraction', 'ql_mean', 'qt_mean', 
                                       's_mean', "total_flux_qt", 'total_flux_s'],
-                  edmf_label:str = 'EDMF', title:str = None, plot_name_map:dict = None,
+                  ds1_label:str = 'EDMF', ds2_label:str = None, ds3_label:str = None, title:str = None, plot_name_map:dict = None,
+                  linewidth = 1.5,
                   nrows = 2, ncols = 3, grid_bool = False, xlabel_bool = False, 
                   save_fig_path:str = False, ax=None):  # Add 'ax' as a parameter
 
@@ -218,6 +219,7 @@ def plot_profiles_combined(ds:xr.Dataset, ds2:xr.Dataset,
         tc_field_name = plot_field_names[field_num]
         field_var = ds[tc_field_name]
         field_var2 = ds2[tc_field_name]
+        field_var3 = ds3[tc_field_name]
         if own_fig:
             ax_i = axs[np.unravel_index(field_num, (nrows, ncols))]
         else:
@@ -239,7 +241,7 @@ def plot_profiles_combined(ds:xr.Dataset, ds2:xr.Dataset,
                                    right_bound_les_shade,
                                    alpha = 0.3)
                 # Plot LES field
-                ax_i.plot(les_field_var, ds_les.zc, c = 'k', linewidth = 2.0, label = 'LES')
+                ax_i.plot(les_field_var, ds_les.zc, c = 'k', linewidth = linewidth, label = 'LES')
                 ax_i.scatter(les_field_var, ds_les.zc, s = 2, c = 'k')
 
         if len(field_var) == len(ds.zc):
@@ -247,10 +249,12 @@ def plot_profiles_combined(ds:xr.Dataset, ds2:xr.Dataset,
         elif len(field_var) == len(ds.zf):
             z = ds.zf
 
-        ax_i.plot(field_var, z, c = 'r', linewidth = 2.0, label = edmf_label)
+        ax_i.plot(field_var, z, c = 'r', linewidth = linewidth, label = ds1_label)
         ax_i.scatter(field_var, z, c = 'r', s = 2)
 
-        ax_i.plot(field_var2, z, linewidth = 2.0, color='grey', linestyle='--', label = "Cohen et al., 2020")
+        ax_i.plot(field_var2, z, linewidth = linewidth, color='b', label = ds2_label)
+
+        ax_i.plot(field_var3, z, linewidth = linewidth, color='grey', linestyle='--', label = ds3_label)
 
         if xlabel_bool:
             ax_i.set_xlabel(tc_field_name, weight = 'bold')
