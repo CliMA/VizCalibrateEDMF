@@ -8,8 +8,10 @@ sys.path.append(src_path)
 from src.diag_plots import *
 from src.data_tools import *
 
+
+# the required data can be found on Zenodo (see Christopoulos et al., 2024) or in /groups/esm/cchristo/data/james_2024_submission on Caltech HPC.
 # path to CEDMF output Diagnostics.nc file
-linreg_diag_path = "/groups/esm/cchristo/cedmf_results/james_v1_runs/results_Inversion_p22_e300_i15_mb_LES_2024-03-15_10-08_Vxo_longer_long_run/Diagnostics.nc"
+linreg_diag_path = "/central/groups/esm/cchristo/data/james_2024_submission/calibration_diagnostics/linreg_full_cal/output/Diagnostics.nc"
 
 ds_dict = preprocess_diags(linreg_diag_path)
 

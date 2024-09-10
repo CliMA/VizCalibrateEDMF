@@ -199,7 +199,7 @@ def plot_var_offline(mse_list,
                 box_and_whiskers:bool = True,
                 max_min_shading:bool = True, 
                 plot_labels:list = None,
-                curve_colors = ['red', 'blue'],
+                curve_colors = ['blue', 'red'],
                 ylims = {"s_mean": [0, 30], "qt_mean": [0, 1e-7], "ql_mean": [0, 2e-4], "total_flux_s": [0, 0.3], "total_flux_qt": [0, 7e-5], "lwp_mean": [0, 0.2]},
                 baseline_hz_line:bool = None,
                 save_fig_path:str = False, 
@@ -211,7 +211,7 @@ def plot_var_offline(mse_list,
                 xlims = None,
                 suptitle = None, 
                 linewidth=2,
-                legend_labels = ["NN", "Linreg", "Cohen et al., 2020",],
+                legend_labels = ["EDMF-Linreg", "EDMF-NN", "Cohen et al., 2020",],
                 ):
     
     fig, axs = plt.subplots(nrows, ncols, sharex = True, figsize=(ncols * 6, nrows * 3))
@@ -225,10 +225,10 @@ def plot_var_offline(mse_list,
         for mse_list_i in range(len(mse_list)):
             u_dataframe = mse_list[mse_list_i].isel(variable  = var_name_i).to_dataframe(name = "mse").reset_index()
 
-            u_dataframe["Epoch"] = (u_dataframe["iteration"] / iterations_per_epoch).round(1)
+            u_dataframe["Epoch"] = u_dataframe["iteration"] / iterations_per_epoch
 
             u_dataframe_by_part = mse_by_particle_list[mse_list_i].isel(variable  = var_name_i).to_dataframe(name = "mse_by_particle").reset_index()
-            u_dataframe_by_part["Epoch"] = (u_dataframe_by_part["iteration"] / iterations_per_epoch).round(1)
+            u_dataframe_by_part["Epoch"] = u_dataframe_by_part["iteration"] / iterations_per_epoch
 
             if box_and_whiskers:
                 if display_epoch:
@@ -297,16 +297,18 @@ def plot_var_offline(mse_list,
             else:
                 ax.set_xlabel('Iteration', weight='bold', fontsize = 17)
 
-    if display_epoch and iterations_per_epoch:
-        max_iteration = u_dataframe["iteration"].max()
-        epochs = np.arange(0, max_iteration + iterations_per_epoch, iterations_per_epoch)
-        epoch_labels = epochs // iterations_per_epoch
-        # Get the last axis for labeling and ticks
-        last_ax = np.atleast_1d(axs)[-1]
-        last_ax.set_xticks(epochs[:-1])
-        last_ax.set_xticklabels(epoch_labels[:-1])
-        last_ax.set_xlim(epochs[0], epochs[-2])
-        last_ax.set_xlabel('Epoch')
+        if display_epoch and iterations_per_epoch:
+            max_iteration = u_dataframe["iteration"].max()
+            max_epoch = max_iteration / iterations_per_epoch
+
+            epochs = np.arange(0, (np.ceil(max_epoch) + 1) * iterations_per_epoch, iterations_per_epoch)
+            epochs = epochs.astype(int)
+            epoch_labels = epochs // iterations_per_epoch
+
+            ax.set_xticks(epochs)
+            ax.set_xticklabels(epoch_labels.astype(int))
+            ax.set_xlim(epochs[0], max_iteration - 1)
+
 
     if suptitle:
         fig.suptitle(suptitle, fontsize=16, fontweight='bold')
